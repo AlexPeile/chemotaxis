@@ -405,6 +405,13 @@ public class Controller extends chemotaxis.sim.Controller {
 						}
 					}
 				}
+				else{
+					numIntervals = numIntervals + 1;
+					if (setTurning) {
+						placementCells.add(current.get(i + 1));
+						System.out.println("Point after Turning " + path.get(i + 1) + " ");
+					}
+				}
 			}
 			else if(curr==1 && future==4){
 				wallpointcontinued = new Point(currpoint.x - 1, currpoint.y);
@@ -415,6 +422,13 @@ public class Controller extends chemotaxis.sim.Controller {
 							placementCells.add(current.get(i + 1));
 							System.out.println("Point after Turning " + path.get(i + 1) + " ");
 						}
+					}
+				}
+				else{
+					numIntervals = numIntervals + 1;
+					if (setTurning) {
+						placementCells.add(current.get(i + 1));
+						System.out.println("Point after Turning " + path.get(i + 1) + " ");
 					}
 				}
 			}
@@ -429,6 +443,13 @@ public class Controller extends chemotaxis.sim.Controller {
 						}
 					}
 				}
+				else{
+					numIntervals = numIntervals + 1;
+					if (setTurning) {
+						placementCells.add(current.get(i + 1));
+						System.out.println("Point after Turning " + path.get(i + 1) + " ");
+					}
+				}
 			}
 			else if(curr==2 && future==3){
 				wallpointcontinued = new Point(currpoint.x+1, currpoint.y);
@@ -439,6 +460,13 @@ public class Controller extends chemotaxis.sim.Controller {
 							placementCells.add(current.get(i + 1));
 							System.out.println("Point after Turning " + path.get(i + 1) + " ");
 						}
+					}
+				}
+				else{
+					numIntervals = numIntervals + 1;
+					if (setTurning) {
+						placementCells.add(current.get(i + 1));
+						System.out.println("Point after Turning " + path.get(i + 1) + " ");
 					}
 				}
 			}
@@ -457,7 +485,7 @@ public class Controller extends chemotaxis.sim.Controller {
 			Integer numIntervalso2 = getIntervals(o2, false,grid);
 			Integer numNeighborso1 = countNeighborsInPath(o1);
 			Integer numNeighborso2 = countNeighborsInPath(o2);
-			if (numIntervalso1 - (int)0.5*numNeighborso1 + o1.size() < numIntervalso2 - (int)0.5*numNeighborso2 + o2.size()){
+			if (numIntervalso1 < numIntervalso2){
 				return -1;}
 			else{
 				return 1;
@@ -617,6 +645,10 @@ public class Controller extends chemotaxis.sim.Controller {
 			// Get to next round, but make sure that the refreshing chem will alaways be three chems behind
 			if((idx + 1) < pcIndexes.size() && pcIndexes.get(idx)/3 > pcIndexes.get((idx+1)%pcIndexes.size())/3)
 				chemicalPlacement = determineLocation(currentTurn, idx+1);
+		}
+
+		for(Point p:path){
+			System.out.printf("%d,%d\n", p.x, p.y);
 		}
 		return chemicalPlacement;
 	}
