@@ -25,13 +25,13 @@ public class Controller extends chemotaxis.sim.Controller {
 	// Integer time_interval = 4;
 	Integer drop_interval = 5;
 	Integer roll_interval = 10;
-	int first_interval = drop_interval;
 	Point firstDrop;
 	Integer chemical_color = 0;
 	Integer arrayLength = 20;
 	Integer pathComplete;
 	double threshold = 0.05;
 	int vacantRound = 0;
+	int refresh_added = 0;
 
 
     /**
@@ -61,146 +61,61 @@ public class Controller extends chemotaxis.sim.Controller {
 			analyzer.setThreshold(threshold); //default is 0.05
 
 			data = analyzer.analyzePath(path, arrayLength);
-
-			for(AnalysisData dataPoint:data){
-				System.out.printf("for point %d, %d:\n", dataPoint.p.x, dataPoint.p.y);
-				System.out.println("isMax:");
-				for(boolean b: dataPoint.isMax){
-					System.out.print(b);
-				}
-				System.out.println();
-
-				System.out.println("hasGoodGradient:");
-				for(boolean b: dataPoint.goodGradient){
-					System.out.print(b);
-				}
-				System.out.println();
-
-				System.out.println("distance reached:");
-				for(int i: dataPoint.distanceReached){
-					System.out.printf("%d ", i);
-				}
-				System.out.println();
-				System.out.printf("is max percentage: %f\n", dataPoint.isMaxPercentage);
-				System.out.printf("has good gradient percentage: %f\n", dataPoint.isGoodGradientPercentage);
-
-				System.out.println("Max reached:");
-				System.out.println(dataPoint.maxDistance);
-				System.out.println(dataPoint.willReach(4));
-				System.out.println(dataPoint.turnsWillReach(4)[0]);
-				System.out.println(dataPoint.turnsWillReach(4)[1]);
-				System.out.println();
-				System.out.println();
-			}
 		}
 		else{
 			data = analyzer.analyzePath(path, arrayLength);
-		}
-
-		for(Point p: path){
-			System.out.println(p);
 		}
 
 		placementCells = new ArrayList<Point>();
 		// Analyze the selected path and get all turning points as initial placement cells
 		getIntervals(path, true, grid);
 
-		// Point first = path.get(1);
-		// boolean addedFirst = false;
-		// if(start.y-1!=first.y){
-		// 	if(grid[start.x][start.y-1].isOpen() && (start.x+1!=first.x || start.y!=first.y)){
-		// 		placementCells.add(0, path.get(1));
-		// 		addedFirst = true;
-		// 	}
-		// 	else if(grid[start.x-1][start.y].isOpen() && (start.x!=first.x || start.y+1!=first.y)){
-		// 		placementCells.add(0, path.get(1));
-		// 		addedFirst = true;
-		// 	}
-		// 	else if(grid[start.x-2][start.y-1].isOpen() && (start.x-1!=first.x || start.y!=first.y)){
-		// 		placementCells.add(0, path.get(1));
-		// 		addedFirst = true;
-		// 	}
-		// }
-
-		// else if(grid[start.x-1][start.y-2].isOpen() && (start.x!=first.x || start.y-1!=first.y)){
-		// 	placementCells.add(0, path.get(1));
-		// }
-
-		// if(addedFirst){
-		// 	placementPadding = new int[placementCells.size()+1];
-		// 	placementPadding[0] = -1;
-		// }
-		// else{
-		// 	placementPadding = new int[placementCells.size()];
-		// 	placementPadding[0] = 0;
-		// }
 		placementPadding = new int[placementCells.size()];
 		placementPadding[0] = 0;
-		System.out.println(placementCells.size());
 		int cur = path.indexOf(placementCells.get(0));
 		
-		// if(cur>roll_interval){
-		// 	placementCells.add(0, path.get(first_interval));
-		// 	cur = first_interval;
-		// }
 		int prev = 0;
-		System.out.println(prev);
 		// For each placement cells check the following two cells
 		// and find the one with largest percentage of remaining as local max.
 		for(int i=0; i<placementCells.size(); i++){
 			cur = path.indexOf(placementCells.get(i));
 			// Distance from A to B]
 			int gap = cur-prev;
-			System.out.print(" " + placementCells.get(i) + " ");
 
 			int next = cur;
 			if(i < placementCells.size()-1 && gap < roll_interval){
 				next = path.indexOf(placementCells.get(i+1));
 				if(data.get(next).maxDistance>=next-cur && i < placementCells.size()-2){
 					int nextNext = path.indexOf(placementCells.get(i+2));
-					System.out.print("nn-cur: " + (nextNext-cur));
 					if(data.get(nextNext).maxDistance > nextNext-cur){
-						System.out.print(" removed" + placementCells.get(i+1) + " ");
 						placementCells.remove(i+1);
 					}
 				}
 			}
-			
-			// Say A --15 cells --> B; so the rolling mode is on
-			// Turn the rolling mode on
-			// if(gap >= roll_interval){ 
-			// 	placementPadding[i] += 2*(gap-1);
-			// }
 
 			int turningIdx = cur;
 			int bestPoint = cur;
 			int j=1;
-			while((cur+j)<placementCells.size() && j<=data.get(cur+j).maxDistance && gap!=1){
-				if(data.get(bestPoint).isMaxPercentage<=data.get(cur+j).isMaxPercentage && (next==cur || (next-cur)>(j+1))){
+			while((cur+j)<path.size() && j<=data.get(cur+j).maxDistance && gap!=1){
+				if(data.get(bestPoint).isMaxPercentage<data.get(cur+j).isMaxPercentage && (next==cur || (next-cur)>(j+1))){
 					bestPoint = cur+j;
 				}
 				j++;
 			}
 			placementCells.set(i, path.get(bestPoint));
-			
-			System.out.print(" " + path.get(bestPoint) + " ");
+			cur = bestPoint;
 
 			if(gap<data.get(cur).maxDistance){
-				System.out.print("i:" + i + " padding compute" + prev + " " + cur + " " + first_interval + "; ");
 				placementPadding[i] += 2 * prev - cur;
 			}
 			else{
-				System.out.print("i:" + i + " padding compute" + turningIdx + " " + cur + " " + first_interval + "; ");
-				placementPadding[i] += 2 * turningIdx - cur;
+				placementPadding[i] += 2 * turningIdx - cur - 1;
 			}
 			
-			System.out.println("result " + i + " " + placementPadding[i]);
 			prev = cur;
 		}
-		System.out.print("\n");
 
 		for(int k=0; k<placementPadding.length; k++)
-			System.out.println(placementPadding[k]);
 
 		firstDrop = placementCells.get(0);
 
@@ -210,7 +125,6 @@ public class Controller extends chemotaxis.sim.Controller {
 		}
 		else
 			pathComplete = 1;
-		System.out.println("Turns for controller to complete a singel path: "+ pathComplete + "\n");
 
 		colorPath = new ArrayList<ChemicalType>();
 		for (int i=0; i<placementCells.size(); i++) {
@@ -223,40 +137,10 @@ public class Controller extends chemotaxis.sim.Controller {
 			}
 		}
 
-		// to keep track the refreshing turn, i.e. refreshing btw finishing the first (after the first round finish, it will start looping agian)
-		// The goal is to refreshing without interfering the previous one
-		// So multiple boundaries are set. The numbers are chosen carefully, but totally open to adjustment
-		// To-Do: Didn't find a way that it can guarantee the agentGoal.
-
-		// System.out.println(pathComplete);
-		// int refreshTimes = Math.min(pathComplete/spawnFreq, agentGoal);
-		// System.out.println(refreshTimes);
 		pcIndexes = new ArrayList<Integer>();
 		refreshPadding = new ArrayList<Integer>();
 		refreshPadding.add(0);
 		pcIndexes.add(0);
-		// for(int j=0; j<refreshTimes; j++){
-		// 	if(j==0){
-		// 		refreshPadding.add(0);
-		// 		pcIndexes.add(0);
-		// 	}
-		// 	else{
-		// 		for(int k=2*j; k<placementCells.size(); k++){
-		// 			int curIndex = path.indexOf(placementCells.get(k));
-		// 			if(curIndex > Math.max(j*(pathComplete/refreshTimes), j*15)){
-		// 				int preIndex = path.indexOf(placementCells.get(k));
-		// 				int padding = 2 * preIndex - curIndex + first_interval;
-		// 				if((pathComplete - padding) > 15){
-		// 					refreshPadding.add(padding);
-		// 					pcIndexes.add(0);
-		// 					System.out.println("refresh padding idx:" + j + "; padding:" + refreshPadding.get(j%refreshTimes));
-		// 				}
-		// 				break;
-		// 			}
-		// 		}
-		// 	}
-		// }
-
 	}
 
 	public int closestToTarget(ArrayList<Point> locations) {
@@ -338,7 +222,6 @@ public class Controller extends chemotaxis.sim.Controller {
 	void addInterval(ArrayList<Point> current, boolean setTurning, int i){
 		if(setTurning){
 			placementCells.add(current.get(i+2));
-			System.out.println("Point after Turning " + path.get(i+2) + " ");
 		}
 	}
 
@@ -365,6 +248,39 @@ public class Controller extends chemotaxis.sim.Controller {
 		}
 
 		Integer numIntervals = 0;
+
+		if(current.size() > 1){// test to see if first move is West (default movement) or some other move
+			if(values.get(0) != 1){// movement is not west
+				Point start = current.get(0);
+				Point southStart = new Point(start.x + 1, start.y);
+				Point eastStart = new Point(start.x, start.y + 1);
+				Point westStart = new Point(start.x, start.y - 1);
+				boolean southOpen = (pointInBounds(grid.length, southStart) && grid[southStart.x - 1][southStart.y - 1].isOpen());
+				boolean eastOpen = (pointInBounds(grid.length, eastStart) && grid[eastStart.x - 1][eastStart.y - 1].isOpen());
+				boolean westOpen = (pointInBounds(grid.length, westStart) && grid[westStart.x - 1][westStart.y - 1].isOpen());
+
+
+				if(values.get(0) == 4){ //moving south
+					if(westOpen){
+						numIntervals = numIntervals + 1;
+						addInterval(current, setTurning, 0);
+					}
+				}
+				else if(values.get(0) == 2) {//moving east
+					if(westOpen || southOpen){
+						numIntervals = numIntervals + 1;
+						addInterval(current, setTurning, 0);
+					}
+				}
+				else if(values.get(0) == 3){
+					if(westOpen || southOpen || eastOpen){
+						numIntervals = numIntervals + 1;
+						addInterval(current, setTurning, 0);
+					}
+				}
+			}
+		}
+
 
 		for (int i=0;i<values.size()-1;i=i+1){
 			Point currpoint = current.get(i+1);
@@ -493,7 +409,6 @@ public class Controller extends chemotaxis.sim.Controller {
 
 			}
 			else if(curr==2 && future==3){
-				// System.out.println(currpoint + "go right and need to go up");
 				wallpointcontinued = new Point(currpoint.x, currpoint.y+1);
 				if (pointInBounds(length, wallpointcontinued)) {
 					if (grid[wallpointcontinued.x-1][wallpointcontinued.y-1].isOpen()){
@@ -518,8 +433,16 @@ public class Controller extends chemotaxis.sim.Controller {
 			Integer numIntervalso2 = getIntervals(o2, false,grid);
 			Integer numNeighborso1 = countNeighborsInPath(o1);
 			Integer numNeighborso2 = countNeighborsInPath(o2);
-			if (numIntervalso1 - (int)0.5*numNeighborso1 + o1.size() < numIntervalso2 - (int)0.5*numNeighborso2 + o2.size()){
-				return -1;}
+			if (numIntervalso1< numIntervalso2){
+				return -1;
+			}
+			else if(numIntervalso1 == numIntervalso2) {
+				if (o1.size() < o2.size()) {
+					return -1;
+				} else {
+					return 1;
+				}
+			}
 			else{
 				return 1;
 			}
@@ -622,17 +545,15 @@ public class Controller extends chemotaxis.sim.Controller {
 		double curFirstCnct = grid[firstDrop.x-1][firstDrop.y-1].getConcentration(colorPath.get(0));
 		
 		if(curFirstCnct < threshold){
-			refreshPadding.add(currentTurn);
+			refreshPadding.add(currentTurn + refreshPadding.size()*spawnFreq);
 			pcIndexes.add(0);
-			System.out.println("Refreshing! grid[firstDrop.x-1][firstDrop.y]: " + firstDrop.x + ", " + firstDrop.y + "; Concentration " + curFirstCnct);
 		}
 
- 
 		if(pcIndexes.size()>0)
         	return determineLocation(currentTurn, 0);
 		else{
 			vacantRound++;
-			if(vacantRound>50){
+			if(vacantRound>spawnFreq){
 				threshold += 0.05;
 				vacantRound = 0;
 			}
@@ -649,13 +570,6 @@ public class Controller extends chemotaxis.sim.Controller {
 		Point currentLocation = placementCells.get(pcIndex);
  
         int turnToPlace = refreshPadding.get(idx) + placementPadding[pcIndex];
-
-		// System.out.println("idx " + idx);
-		// System.out.println("pcIndexes[idx] " + pcIndex);
-		// System.out.println("currentLocation " + currentLocation);
-		// System.out.println("turnToPlace " + turnToPlace);
-		// System.out.println("currentTurn " + currentTurn);
-
         
         if(currentTurn >= turnToPlace){
             chemicalPlacement.location = currentLocation;
@@ -663,9 +577,7 @@ public class Controller extends chemotaxis.sim.Controller {
             chemicals.add(colorPath.get(pcIndex));
             chemicalPlacement.chemicals = chemicals;
             pcIndexes.set(idx, ++pcIndex);
-			System.out.println("Chemical Placed at " + currentLocation);
 			if(pcIndex>=placementCells.size()){
-				// int padding = refreshPadding.get(idx);
 				if(idx!=0)
 					System.err.println("WARNING: Chemical placement sequence messed up");
 				pcIndexes.remove(0);
